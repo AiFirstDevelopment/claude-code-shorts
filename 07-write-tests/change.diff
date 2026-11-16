@@ -1,0 +1,15 @@
+diff --git a/demo/src/retrieval.ts b/demo/src/retrieval.ts
+index ec3327b..afea517 100644
+--- a/demo/src/retrieval.ts
++++ b/demo/src/retrieval.ts
+@@ -33,8 +33,9 @@ const STOP = new Set(
+ 
+ /** A text as the tokens BM25 compares: lower-cased runs of letters and digits, stop words out, a plain plural's "s" off. */
+ export function words(text: string): string[] {
++  // Accents off first ("café" → "cafe", "résumé" → "resume"): NFD splits each accented letter into its base and a combining mark, which is then dropped.
+   // Anything but a letter or digit separates tokens, so punctuation and case never stop a match.
+-  return (text.toLowerCase().match(/[a-z0-9]+/g) ?? [])
++  return (text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().match(/[a-z0-9]+/g) ?? [])
+     .filter((word) => !STOP.has(word))
+     // "invoices" must find "invoice"; "bus" must not become "bu".
+     .map((word) => (word.length > 3 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word))

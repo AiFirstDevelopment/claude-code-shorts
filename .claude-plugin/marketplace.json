@@ -40,6 +40,21 @@
       ]
     },
     {
+      "name": "write-tests",
+      "source": "./plugins/write-tests",
+      "description": "Write the tests for your change, in your project's style, and prove each one can fail.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joel Stevick"
+      },
+      "category": "testing",
+      "tags": [
+        "tests",
+        "testing",
+        "mutation testing"
+      ]
+    },
+    {
       "name": "spec-first",
       "source": "./plugins/spec-first",
       "description": "Turn a request into a task file of checkable rules and the tests that check them, get your OK, then build until the tests pass, with the tests locked so they can't be edited to pass.",

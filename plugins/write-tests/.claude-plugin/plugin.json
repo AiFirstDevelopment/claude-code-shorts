@@ -1,0 +1,8 @@
+{
+  "name": "write-tests",
+  "description": "Write the tests for your change, in your project's own test style, and prove each one can fail by breaking the changed code for a moment. Never changes your code to make a test pass.",
+  "version": "1.0.0",
+  "author": { "name": "Joel Stevick" },
+  "homepage": "https://github.com/AiFirstDevelopment/claude-code-shorts",
+  "keywords": ["tests", "testing", "mutation testing", "git"]
+}
