@@ -1,0 +1,38 @@
+diff --git a/demo/src/retrieval.ts b/demo/src/retrieval.ts
+index ec3327b..fe4a938 100644
+--- a/demo/src/retrieval.ts
++++ b/demo/src/retrieval.ts
+@@ -34,7 +34,7 @@ const STOP = new Set(
+ /** A text as the tokens BM25 compares: lower-cased runs of letters and digits, stop words out, a plain plural's "s" off. */
+ export function words(text: string): string[] {
+   // Anything but a letter or digit separates tokens, so punctuation and case never stop a match.
+-  return (text.toLowerCase().match(/[a-z0-9]+/g) ?? [])
++  return (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])
+     .filter((word) => !STOP.has(word))
+     // "invoices" must find "invoice"; "bus" must not become "bu".
+     .map((word) => (word.length > 3 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word))
+diff --git a/demo/tests/demo.test.ts b/demo/tests/demo.test.ts
+index a799168..c5bd134 100644
+--- a/demo/tests/demo.test.ts
++++ b/demo/tests/demo.test.ts
+@@ -113,6 +113,20 @@ describe('degrade, do not fail', () => {
+     expect(asked.body.sources).toEqual([expect.objectContaining({ file: 'policy.pdf', page: 1 })])
+   })
+ 
++  it('finds a Greek or Russian word by keyword search alone', async () => {
++    const demo = await newDemo('fp_greek')
++    await upload(demo.key, 'english.pdf', ['Refunds are paid within 30 days of the request.'])
++    await upload(demo.key, 'greek.pdf', ['Η πληρωμή γίνεται εντός 30 ημερών.'])
++    await upload(demo.key, 'russian.pdf', ['Оплата производится в течение 30 дней.'])
++    vectors.failing = true
++    const greek = await call('/api/ask', demo.key, { question: 'πληρωμή' })
++    expect(greek.body.found).toBe(true)
++    expect(greek.body.sources).toEqual([expect.objectContaining({ file: 'greek.pdf', page: 1 })])
++    const russian = await call('/api/ask', demo.key, { question: 'оплата' })
++    expect(russian.body.found).toBe(true)
++    expect(russian.body.sources).toEqual([expect.objectContaining({ file: 'russian.pdf', page: 1 })])
++  })
++
+   it('answers when the embedding model is down', async () => {
+     const demo = await newDemo('fp_embed')
+     await upload(demo.key, 'policy.pdf', ['Refunds are paid within 30 days of the request.'])
