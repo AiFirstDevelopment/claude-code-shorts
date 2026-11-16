@@ -1,7 +1,5 @@
 # Project rules
 
-- Only admins change links: any request that changes or removes a link needs the header
-  x-admin-key equal to process.env.ADMIN_KEY, or it gets 403.
-- Links are never deleted from storage: a removed link is marked removed, its code answers 410,
-  and its stats still work.
+- Only admins delete accounts: the header x-admin-key must equal process.env.ADMIN_KEY, or the answer is 403.
+- Accounts are never erased: a deleted account is marked deleted, its id answers 410, and its orders are kept.
 - Every new endpoint gets a test in server.test.js.

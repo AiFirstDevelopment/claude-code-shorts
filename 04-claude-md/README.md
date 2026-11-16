@@ -4,40 +4,46 @@ The files from the Short **"CLAUDE.md Best Practices: What Claude Code Can't Gue
 
 ## The idea
 
-Claude Code reads `CLAUDE.md` at the start of every session: your project's rules, without repeating them in every
-prompt. The question is what to put in it.
+Claude Code reads `CLAUDE.md` at the start of every session: your project's rules, so you don't repeat them in every
+prompt. The question is what to put in it, and what to do about the times it doesn't follow it.
 
-The same request, on the same code (the URL shortener from [`01-walk-away`](../01-walk-away)), run twice:
+The same request, on the same small user accounts API (users and their orders), run twice:
 
 ```sh
-claude -p "Add DELETE /links/<code>, which removes a link." --permission-mode acceptEdits --allowedTools "Bash(npm test)"
+claude -p "Add a way to delete a user's account." --permission-mode acceptEdits --allowedTools "Bash(npm test)"
 ```
 
 | Folder | CLAUDE.md | What Claude Code built |
 |---|---|---|
-| [`without`](without) | none | `links.delete(code)` with no check of who asks: **anyone can delete any link, and it's gone for good** |
-| [`with`](with) | [three rules](with/CLAUDE.md) | an admin check (`x-admin-key`, else 403); the link kept and marked removed; its code answers 410; 6 of 6 tests pass |
+| [`without`](without) | none | `DELETE /users/<id>` with no check of who asks, and `users.delete()`: **anyone can delete anyone's account, and the orders go with it** (its own code comment says so) |
+| [`with`](with) | [three rules](with/CLAUDE.md) | 403 without the admin key; the account marked deleted, not erased; 410 for a deleted account; the orders kept |
 
 ```mermaid
 flowchart LR
-    R["Add DELETE /links/&lt;code&gt;"] --> A{"CLAUDE.md?"}
-    A -->|no| N["anyone can delete<br/>the link is gone"]
-    A -->|"yes: admins only,<br/>never delete"| Y["403 without the admin key<br/>link kept, code answers 410"]
+    R["Add a way to delete<br/>a user's account"] --> A{"CLAUDE.md?"}
+    A -->|no| N["anyone can delete any account<br/>its orders are gone"]
+    A -->|"yes: admins only,<br/>never erase"| Y["403 without the admin key<br/>account kept, orders kept"]
 ```
 
 ## What to put in it
 
-A first try with generic rules ("write a test for every endpoint", "run npm test before you're done", "JSON errors",
-"no packages") changed nothing: Claude Code did all of those without being told. What changed the result were rules
-it **can't guess**, because they're your decisions, not good practice:
+Rules Claude Code **can't guess**, because they're your decisions, not good practice:
 
-- **Who's allowed to do what**: `Only admins change links: the header x-admin-key must equal ADMIN_KEY, or 403.`
-- **What must never happen**: `Links are never deleted from storage: a removed link is marked removed, and its code answers 410.`
+- **Who's allowed to do what**: `Only admins delete accounts: the header x-admin-key must equal ADMIN_KEY, or 403.`
+- **What must never happen**: `Accounts are never erased: a deleted account is marked deleted, and its orders are kept.`
 
-Copy [`with/CLAUDE.md`](with/CLAUDE.md) and replace those rules with your project's.
+Generic rules ("write tests", "run npm test before you're done") changed nothing in an earlier try: it already does
+those.
+
+## It doesn't always follow it
+
+CLAUDE.md is instructions, not enforcement. Claude Code usually follows it, and sometimes it doesn't. So every rule
+that really matters gets a test. In [`with/server.test.js`](with/server.test.js), a test deletes an account without
+the admin key and expects 403; if Claude Code ever ignores the rule, that test fails. (To make a rule impossible to
+break, use a hook: see the [spec-first plugin](../plugins/spec-first).)
 
 ## Try it
 
 ```sh
-cd with && npm test       # 6 passed, including the new delete test
+cd with && npm test       # 16 passed, including the 403 test
 ```

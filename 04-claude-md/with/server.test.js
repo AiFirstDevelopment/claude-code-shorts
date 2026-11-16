@@ -1,75 +1,147 @@
-// The check: the tests Claude Code had to make pass.
-// Each test sends real HTTP requests to the server and checks the answer,
-// the way a user would see it. Nothing here looks at how server.js works inside.
-// Run them with: npm test
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import { start } from './server.js';
 
-import test, { before, after } from 'node:test'
-import assert from 'node:assert/strict'
-import { start } from './server.js'
+let server;
+let base;
 
-// Start the server once on a free port (0 lets the OS pick one), and stop it at the end.
-let base, server
-before(async () => { server = await start(0); base = `http://localhost:${server.address().port}` })
-after(() => server.close())
+const ADMIN_KEY = 'test-admin-key';
 
-// Helper: ask the server to shorten a url (POST /links with {"url"}).
-const shorten = (url) => fetch(`${base}/links`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url }) })
+before(async () => {
+  process.env.ADMIN_KEY = ADMIN_KEY;
+  server = start(0);
+  await once(server, 'listening');
+  base = `http://localhost:${server.address().port}`;
+});
 
-// Rules: POST /links returns 201 and {"code"}; codes are 6 letters or digits.
-test('shortens a url to a 6-character code', async () => {
-  const res = await shorten('https://example.com/a')
-  assert.equal(res.status, 201)
-  const { code } = await res.json()
-  assert.match(code, /^[A-Za-z0-9]{6}$/)
-})
+after(() => server.close());
 
-// Rules: GET /<code> redirects (302) to the url; GET /links/<code>/stats returns {"url", "visits"}.
-test('redirects and counts visits', async () => {
-  const { code } = await (await shorten('https://example.com/b')).json()
-  // redirect: 'manual' so we see the 302 itself instead of following it
-  const res = await fetch(`${base}/${code}`, { redirect: 'manual' })
-  assert.equal(res.status, 302)
-  assert.equal(res.headers.get('location'), 'https://example.com/b')
-  await fetch(`${base}/${code}`, { redirect: 'manual' })
-  const stats = await (await fetch(`${base}/links/${code}/stats`)).json()
-  assert.deepEqual(stats, { url: 'https://example.com/b', visits: 2 })
-})
+async function req(method, path, body, extraHeaders = {}) {
+  const res = await fetch(base + path, {
+    method,
+    headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...extraHeaders },
+    body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
+  });
+  const text = await res.text();
+  return { status: res.status, body: text ? JSON.parse(text) : undefined };
+}
 
-// Rule: the same url always gets the same code.
-test('the same url gets the same code', async () => {
-  const a = await (await shorten('https://example.com/c')).json()
-  const b = await (await shorten('https://example.com/c')).json()
-  assert.equal(a.code, b.code)
-})
+async function createUser(name = 'Ada', email = 'ada@example.com') {
+  const r = await req('POST', '/users', { name, email });
+  assert.equal(r.status, 201);
+  return r.body.id;
+}
 
-// Rule: a url that isn't http or https is 400. Bad input gets a test too.
-test('rejects a url that is not http or https', async () => {
-  assert.equal((await shorten('javascript:alert(1)')).status, 400)
-  assert.equal((await shorten('not a url')).status, 400)
-})
+test('POST /users returns 201 and an id', async () => {
+  const r = await req('POST', '/users', { name: 'Ada', email: 'ada@example.com' });
+  assert.equal(r.status, 201);
+  assert.ok(r.body.id !== undefined);
+});
 
-// Rule: unknown codes are 404.
-test('unknown code is 404', async () => {
-  assert.equal((await fetch(`${base}/zzzzzz`, { redirect: 'manual' })).status, 404)
-})
+test('GET /users/<id> returns the user', async () => {
+  const id = await createUser('Grace', 'grace@example.com');
+  const r = await req('GET', `/users/${id}`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, { id, name: 'Grace', email: 'grace@example.com' });
+});
 
-// Rules: DELETE /links/<code> needs x-admin-key == ADMIN_KEY (else 403); the link is kept
-// but marked removed, so its code answers 410 and its stats still work.
-test('DELETE /links/<code> removes a link (admin only)', async () => {
-  process.env.ADMIN_KEY = 'test-admin-key'
-  const { code } = await (await shorten('https://example.com/d')).json()
-  await fetch(`${base}/${code}`, { redirect: 'manual' })
-  const del = (path, headers = {}) => fetch(`${base}/links/${path}`, { method: 'DELETE', headers })
-  const admin = { 'x-admin-key': 'test-admin-key' }
+test('each user gets a distinct id', async () => {
+  const a = await createUser();
+  const b = await createUser();
+  assert.notEqual(a, b);
+});
 
-  assert.equal((await del(code)).status, 403)
-  assert.equal((await del(code, { 'x-admin-key': 'wrong' })).status, 403)
-  assert.equal((await fetch(`${base}/${code}`, { redirect: 'manual' })).status, 302)
+test('unknown user id is 404', async () => {
+  const r = await req('GET', '/users/does-not-exist');
+  assert.equal(r.status, 404);
+});
 
-  assert.equal((await del(code, admin)).status, 204)
-  assert.equal((await fetch(`${base}/${code}`, { redirect: 'manual' })).status, 410)
-  const stats = await (await fetch(`${base}/links/${code}/stats`)).json()
-  assert.deepEqual(stats, { url: 'https://example.com/d', visits: 2 })
+test('email without @ is 400', async () => {
+  const r = await req('POST', '/users', { name: 'Bob', email: 'bob.example.com' });
+  assert.equal(r.status, 400);
+});
 
-  assert.equal((await del('zzzzzz', admin)).status, 404)
-})
+test('missing name is 400', async () => {
+  const r = await req('POST', '/users', { email: 'x@example.com' });
+  assert.equal(r.status, 400);
+});
+
+test('malformed JSON is 400', async () => {
+  const r = await req('POST', '/users', '{not json');
+  assert.equal(r.status, 400);
+});
+
+test('POST /users/<id>/orders returns 201 and an id', async () => {
+  const uid = await createUser();
+  const r = await req('POST', `/users/${uid}/orders`, { item: 'book' });
+  assert.equal(r.status, 201);
+  assert.ok(r.body.id !== undefined);
+});
+
+test('GET /users/<id>/orders lists only that user\'s orders', async () => {
+  const u1 = await createUser();
+  const u2 = await createUser();
+  const o1 = (await req('POST', `/users/${u1}/orders`, { item: 'book' })).body.id;
+  const o2 = (await req('POST', `/users/${u1}/orders`, { item: 'pen' })).body.id;
+  await req('POST', `/users/${u2}/orders`, { item: 'lamp' });
+
+  const r = await req('GET', `/users/${u1}/orders`);
+  assert.equal(r.status, 200);
+  assert.ok(Array.isArray(r.body));
+  assert.deepEqual(r.body, [
+    { id: o1, item: 'book' },
+    { id: o2, item: 'pen' },
+  ]);
+});
+
+test('new user has an empty order list', async () => {
+  const uid = await createUser();
+  const r = await req('GET', `/users/${uid}/orders`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, []);
+});
+
+test('orders for unknown user are 404', async () => {
+  assert.equal((await req('GET', '/users/nope/orders')).status, 404);
+  assert.equal((await req('POST', '/users/nope/orders', { item: 'x' })).status, 404);
+});
+
+test('order without item is 400', async () => {
+  const uid = await createUser();
+  const r = await req('POST', `/users/${uid}/orders`, {});
+  assert.equal(r.status, 400);
+});
+
+const admin = { 'x-admin-key': ADMIN_KEY };
+
+test('DELETE /users/<id> with admin key returns 204, then the id answers 410', async () => {
+  const uid = await createUser();
+  await req('POST', `/users/${uid}/orders`, { item: 'book' });
+  assert.equal((await req('DELETE', `/users/${uid}`, undefined, admin)).status, 204);
+  assert.equal((await req('GET', `/users/${uid}`)).status, 410);
+  assert.equal((await req('GET', `/users/${uid}/orders`)).status, 410);
+  assert.equal((await req('POST', `/users/${uid}/orders`, { item: 'pen' })).status, 410);
+  assert.equal((await req('DELETE', `/users/${uid}`, undefined, admin)).status, 410);
+});
+
+test('DELETE /users/<id> without or with wrong admin key is 403 and keeps the user', async () => {
+  const uid = await createUser();
+  assert.equal((await req('DELETE', `/users/${uid}`)).status, 403);
+  assert.equal((await req('DELETE', `/users/${uid}`, undefined, { 'x-admin-key': 'wrong' })).status, 403);
+  assert.equal((await req('GET', `/users/${uid}`)).status, 200);
+});
+
+test('DELETE is 403 for everyone when ADMIN_KEY is unset', async () => {
+  const uid = await createUser();
+  delete process.env.ADMIN_KEY;
+  try {
+    assert.equal((await req('DELETE', `/users/${uid}`)).status, 403);
+  } finally {
+    process.env.ADMIN_KEY = ADMIN_KEY;
+  }
+});
+
+test('DELETE unknown user is 404', async () => {
+  assert.equal((await req('DELETE', '/users/nope', undefined, admin)).status, 404);
+});

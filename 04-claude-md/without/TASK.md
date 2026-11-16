@@ -1,11 +1,11 @@
 # Task
 
-Build a URL shortener in server.js (node:http, no packages).
+Build a small user accounts API in server.js (node:http, no packages).
+Export start(port), which starts it and returns the listening server.
 
-- POST /links with {"url"} returns 201 and {"code"}
-- codes are 6 letters or digits
-- GET /<code> redirects (302) to the url
-- unknown codes are 404
-- a url that isn't http or https is 400
-- the same url always gets the same code
-- GET /links/<code>/stats returns {"url", "visits"}
+- POST /users with {"name", "email"} returns 201 and {"id"}
+- GET /users/<id> returns {"id", "name", "email"}
+- an unknown id is 404
+- an email without an @ is 400
+- POST /users/<id>/orders with {"item"} returns 201 and {"id"}
+- GET /users/<id>/orders returns the user's orders as a list
