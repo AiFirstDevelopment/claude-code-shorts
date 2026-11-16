@@ -24,6 +24,7 @@ flowchart LR
 
 | Folder | Short | What it shows |
 |---|---|---|
+| [`00-what-it-is`](00-what-it-is) | What Claude Code Actually Is | The program behind the chat, and a small example: slugify, three tests, one command |
 | [`01-walk-away`](01-walk-away) | Give Claude Code a task and walk away | The two files and the one command; Claude Code builds a URL shortener by itself |
 | [`02-tests`](02-tests) | How to write the tests Claude Code works toward | Turning each rule in the task file into a test that checks it |
 

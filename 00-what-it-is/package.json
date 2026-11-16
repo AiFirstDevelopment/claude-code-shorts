@@ -1,0 +1,1 @@
+{ "name": "slugify-example", "type": "module", "scripts": { "test": "node --test" } }
