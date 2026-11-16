@@ -1,5 +1,5 @@
 # Project rules
 
-- Only admins delete accounts: the header x-admin-key must equal process.env.ADMIN_KEY, or the answer is 403.
-- Accounts are never erased: a deleted account is marked deleted, its id answers 410, and its orders are kept.
+- Only the customer who placed an order can cancel it: the header x-customer-id must match the order's customerId, or the answer is 403.
+- A shipped order can never be cancelled: the answer is 409.
 - Every new endpoint gets a test in server.test.js.

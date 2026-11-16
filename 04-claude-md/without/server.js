@@ -1,87 +1,70 @@
-// Claude Code's change for "Add a way to delete a user's account.", with no CLAUDE.md:
-// DELETE /users/<id> with no check of who asks, and users.delete(), so the account and its orders are gone.
-// The code is as it wrote it; only this header was added.
+// Claude Code's change for "Add a way to cancel an order.", with no CLAUDE.md:
+// POST /orders/<id>/cancel with no check of who asks: anyone can cancel anyone's order.
+// (It did guess on its own that a shipped order can't be cancelled.) The code is as it wrote it; only this header was added.
 
 import http from 'node:http';
 
 function send(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(body === undefined ? '' : JSON.stringify(body));
+  res.end(JSON.stringify(body));
 }
 
 async function readJson(req) {
   let data = '';
   for await (const chunk of req) data += chunk;
-  try {
-    const parsed = JSON.parse(data);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
+  if (!data) return {};
+  return JSON.parse(data);
 }
 
 export function start(port) {
-  const users = new Map();
-  let nextUserId = 1;
-  let nextOrderId = 1;
+  const orders = new Map();
+  let nextId = 1;
 
   const server = http.createServer(async (req, res) => {
+    const path = new URL(req.url, 'http://localhost').pathname;
     try {
-      const path = new URL(req.url, 'http://localhost').pathname;
-      const parts = path.split('/').filter(Boolean);
-
-      if (parts[0] !== 'users') return send(res, 404, { error: 'not found' });
-
-      // POST /users
-      if (parts.length === 1) {
-        if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' });
-        const body = await readJson(req);
-        if (!body) return send(res, 400, { error: 'invalid JSON' });
-        const { name, email } = body;
-        if (typeof name !== 'string' || !name.trim()) return send(res, 400, { error: 'name is required' });
-        if (typeof email !== 'string' || !email.includes('@')) return send(res, 400, { error: 'invalid email' });
-        const id = String(nextUserId++);
-        users.set(id, { id, name, email, orders: [] });
-        return send(res, 201, { id });
+      if (req.method === 'POST' && path === '/orders') {
+        let body;
+        try {
+          body = await readJson(req);
+        } catch {
+          return send(res, 400, { error: 'invalid JSON' });
+        }
+        if (!body || typeof body !== 'object' || body.item == null || body.item === '') {
+          return send(res, 400, { error: 'item is required' });
+        }
+        const order = { id: String(nextId++), customerId: body.customerId, item: body.item, status: 'placed' };
+        orders.set(order.id, order);
+        return send(res, 201, { id: order.id, status: order.status });
       }
 
-      const user = users.get(parts[1]);
-
-      // GET /users/<id>, DELETE /users/<id>
-      if (parts.length === 2) {
-        if (req.method === 'GET') {
-          if (!user) return send(res, 404, { error: 'user not found' });
-          return send(res, 200, { id: user.id, name: user.name, email: user.email });
-        }
-        if (req.method === 'DELETE') {
-          if (!user) return send(res, 404, { error: 'user not found' });
-          users.delete(user.id); // orders live on the user record, so they go with it
-          return send(res, 204);
-        }
-        return send(res, 405, { error: 'method not allowed' });
+      let m = path.match(/^\/orders\/([^/]+)$/);
+      if (req.method === 'GET' && m) {
+        const order = orders.get(decodeURIComponent(m[1]));
+        return order ? send(res, 200, order) : send(res, 404, { error: 'not found' });
       }
 
-      // /users/<id>/orders
-      if (parts.length === 3 && parts[2] === 'orders') {
-        if (req.method === 'GET') {
-          if (!user) return send(res, 404, { error: 'user not found' });
-          return send(res, 200, user.orders);
-        }
-        if (req.method === 'POST') {
-          if (!user) return send(res, 404, { error: 'user not found' });
-          const body = await readJson(req);
-          if (!body) return send(res, 400, { error: 'invalid JSON' });
-          if (typeof body.item !== 'string' || !body.item.trim()) return send(res, 400, { error: 'item is required' });
-          const id = String(nextOrderId++);
-          user.orders.push({ id, item: body.item });
-          return send(res, 201, { id });
-        }
-        return send(res, 405, { error: 'method not allowed' });
+      m = path.match(/^\/orders\/([^/]+)\/ship$/);
+      if (req.method === 'POST' && m) {
+        const order = orders.get(decodeURIComponent(m[1]));
+        if (!order) return send(res, 404, { error: 'not found' });
+        if (order.status === 'cancelled') return send(res, 409, { error: 'order is cancelled' });
+        order.status = 'shipped';
+        return send(res, 200, order);
       }
 
-      return send(res, 404, { error: 'not found' });
+      m = path.match(/^\/orders\/([^/]+)\/cancel$/);
+      if (req.method === 'POST' && m) {
+        const order = orders.get(decodeURIComponent(m[1]));
+        if (!order) return send(res, 404, { error: 'not found' });
+        if (order.status === 'shipped') return send(res, 409, { error: 'order already shipped' });
+        order.status = 'cancelled';
+        return send(res, 200, order);
+      }
+
+      send(res, 404, { error: 'not found' });
     } catch {
-      if (!res.headersSent) send(res, 500, { error: 'internal error' });
+      send(res, 500, { error: 'internal error' });
     }
   });
 

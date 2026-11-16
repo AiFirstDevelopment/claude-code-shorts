@@ -1,1 +1,1 @@
-{ "name": "accounts", "type": "module", "scripts": { "test": "node --test" } }
+{ "name": "store", "type": "module", "scripts": { "test": "node --test" } }

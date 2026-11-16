@@ -3,13 +3,9 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { start } from './server.js';
 
-let server;
-let base;
-
-const ADMIN_KEY = 'test-admin-key';
+let server, base;
 
 before(async () => {
-  process.env.ADMIN_KEY = ADMIN_KEY;
   server = start(0);
   await once(server, 'listening');
   base = `http://localhost:${server.address().port}`;
@@ -17,131 +13,82 @@ before(async () => {
 
 after(() => server.close());
 
-async function req(method, path, body, extraHeaders = {}) {
-  const res = await fetch(base + path, {
-    method,
-    headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...extraHeaders },
+const post = (path, body) =>
+  fetch(base + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
   });
-  const text = await res.text();
-  return { status: res.status, body: text ? JSON.parse(text) : undefined };
-}
 
-async function createUser(name = 'Ada', email = 'ada@example.com') {
-  const r = await req('POST', '/users', { name, email });
-  assert.equal(r.status, 201);
-  return r.body.id;
-}
-
-test('POST /users returns 201 and an id', async () => {
-  const r = await req('POST', '/users', { name: 'Ada', email: 'ada@example.com' });
-  assert.equal(r.status, 201);
-  assert.ok(r.body.id !== undefined);
+test('POST /orders creates an order', async () => {
+  const res = await post('/orders', { customerId: 'c1', item: 'mug' });
+  assert.equal(res.status, 201);
+  const body = await res.json();
+  assert.ok(body.id);
+  assert.equal(body.status, 'placed');
 });
 
-test('GET /users/<id> returns the user', async () => {
-  const id = await createUser('Grace', 'grace@example.com');
-  const r = await req('GET', `/users/${id}`);
-  assert.equal(r.status, 200);
-  assert.deepEqual(r.body, { id, name: 'Grace', email: 'grace@example.com' });
+test('GET /orders/<id> returns the order', async () => {
+  const { id } = await (await post('/orders', { customerId: 'c2', item: 'hat' })).json();
+  const res = await fetch(`${base}/orders/${id}`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { id, customerId: 'c2', item: 'hat', status: 'placed' });
 });
 
-test('each user gets a distinct id', async () => {
-  const a = await createUser();
-  const b = await createUser();
-  assert.notEqual(a, b);
+test('unknown id is 404', async () => {
+  assert.equal((await fetch(`${base}/orders/nope`)).status, 404);
+  assert.equal((await post('/orders/nope/ship')).status, 404);
 });
 
-test('unknown user id is 404', async () => {
-  const r = await req('GET', '/users/does-not-exist');
-  assert.equal(r.status, 404);
+test('order without an item is 400', async () => {
+  assert.equal((await post('/orders', { customerId: 'c3' })).status, 400);
+  assert.equal((await post('/orders', { customerId: 'c3', item: '' })).status, 400);
+  assert.equal((await post('/orders', '{bad json')).status, 400);
 });
 
-test('email without @ is 400', async () => {
-  const r = await req('POST', '/users', { name: 'Bob', email: 'bob.example.com' });
-  assert.equal(r.status, 400);
+test('POST /orders/<id>/ship ships the order', async () => {
+  const { id } = await (await post('/orders', { customerId: 'c4', item: 'sock' })).json();
+  const res = await post(`/orders/${id}/ship`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { id, customerId: 'c4', item: 'sock', status: 'shipped' });
+  const after = await (await fetch(`${base}/orders/${id}`)).json();
+  assert.equal(after.status, 'shipped');
 });
 
-test('missing name is 400', async () => {
-  const r = await req('POST', '/users', { email: 'x@example.com' });
-  assert.equal(r.status, 400);
+test('ids are unique', async () => {
+  const a = await (await post('/orders', { customerId: 'c5', item: 'a' })).json();
+  const b = await (await post('/orders', { customerId: 'c5', item: 'b' })).json();
+  assert.notEqual(a.id, b.id);
 });
 
-test('malformed JSON is 400', async () => {
-  const r = await req('POST', '/users', '{not json');
-  assert.equal(r.status, 400);
+const cancel = (id, customerId) =>
+  fetch(`${base}/orders/${id}/cancel`, {
+    method: 'POST',
+    headers: customerId === undefined ? {} : { 'x-customer-id': customerId },
+  });
+
+test('POST /orders/<id>/cancel cancels the order for its customer', async () => {
+  const { id } = await (await post('/orders', { customerId: 'c6', item: 'pen' })).json();
+  const res = await cancel(id, 'c6');
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { id, customerId: 'c6', item: 'pen', status: 'cancelled' });
+  assert.equal((await (await fetch(`${base}/orders/${id}`)).json()).status, 'cancelled');
 });
 
-test('POST /users/<id>/orders returns 201 and an id', async () => {
-  const uid = await createUser();
-  const r = await req('POST', `/users/${uid}/orders`, { item: 'book' });
-  assert.equal(r.status, 201);
-  assert.ok(r.body.id !== undefined);
+test('cancel by another customer or without x-customer-id is 403', async () => {
+  const { id } = await (await post('/orders', { customerId: 'c7', item: 'cup' })).json();
+  assert.equal((await cancel(id, 'someone-else')).status, 403);
+  assert.equal((await cancel(id)).status, 403);
+  assert.equal((await (await fetch(`${base}/orders/${id}`)).json()).status, 'placed');
 });
 
-test('GET /users/<id>/orders lists only that user\'s orders', async () => {
-  const u1 = await createUser();
-  const u2 = await createUser();
-  const o1 = (await req('POST', `/users/${u1}/orders`, { item: 'book' })).body.id;
-  const o2 = (await req('POST', `/users/${u1}/orders`, { item: 'pen' })).body.id;
-  await req('POST', `/users/${u2}/orders`, { item: 'lamp' });
-
-  const r = await req('GET', `/users/${u1}/orders`);
-  assert.equal(r.status, 200);
-  assert.ok(Array.isArray(r.body));
-  assert.deepEqual(r.body, [
-    { id: o1, item: 'book' },
-    { id: o2, item: 'pen' },
-  ]);
+test('cancelling a shipped order is 409', async () => {
+  const { id } = await (await post('/orders', { customerId: 'c8', item: 'box' })).json();
+  await post(`/orders/${id}/ship`);
+  assert.equal((await cancel(id, 'c8')).status, 409);
+  assert.equal((await (await fetch(`${base}/orders/${id}`)).json()).status, 'shipped');
 });
 
-test('new user has an empty order list', async () => {
-  const uid = await createUser();
-  const r = await req('GET', `/users/${uid}/orders`);
-  assert.equal(r.status, 200);
-  assert.deepEqual(r.body, []);
-});
-
-test('orders for unknown user are 404', async () => {
-  assert.equal((await req('GET', '/users/nope/orders')).status, 404);
-  assert.equal((await req('POST', '/users/nope/orders', { item: 'x' })).status, 404);
-});
-
-test('order without item is 400', async () => {
-  const uid = await createUser();
-  const r = await req('POST', `/users/${uid}/orders`, {});
-  assert.equal(r.status, 400);
-});
-
-const admin = { 'x-admin-key': ADMIN_KEY };
-
-test('DELETE /users/<id> with admin key returns 204, then the id answers 410', async () => {
-  const uid = await createUser();
-  await req('POST', `/users/${uid}/orders`, { item: 'book' });
-  assert.equal((await req('DELETE', `/users/${uid}`, undefined, admin)).status, 204);
-  assert.equal((await req('GET', `/users/${uid}`)).status, 410);
-  assert.equal((await req('GET', `/users/${uid}/orders`)).status, 410);
-  assert.equal((await req('POST', `/users/${uid}/orders`, { item: 'pen' })).status, 410);
-  assert.equal((await req('DELETE', `/users/${uid}`, undefined, admin)).status, 410);
-});
-
-test('DELETE /users/<id> without or with wrong admin key is 403 and keeps the user', async () => {
-  const uid = await createUser();
-  assert.equal((await req('DELETE', `/users/${uid}`)).status, 403);
-  assert.equal((await req('DELETE', `/users/${uid}`, undefined, { 'x-admin-key': 'wrong' })).status, 403);
-  assert.equal((await req('GET', `/users/${uid}`)).status, 200);
-});
-
-test('DELETE is 403 for everyone when ADMIN_KEY is unset', async () => {
-  const uid = await createUser();
-  delete process.env.ADMIN_KEY;
-  try {
-    assert.equal((await req('DELETE', `/users/${uid}`)).status, 403);
-  } finally {
-    process.env.ADMIN_KEY = ADMIN_KEY;
-  }
-});
-
-test('DELETE unknown user is 404', async () => {
-  assert.equal((await req('DELETE', '/users/nope', undefined, admin)).status, 404);
+test('cancelling an unknown order is 404', async () => {
+  assert.equal((await cancel('nope', 'c1')).status, 404);
 });
