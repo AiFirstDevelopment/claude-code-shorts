@@ -3,92 +3,79 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { start } from './server.js';
 
-let server, base;
+let server;
+let base;
 
 before(async () => {
   server = start(0);
   await once(server, 'listening');
-  base = `http://localhost:${server.address().port}`;
+  base = `http://127.0.0.1:${server.address().port}`;
 });
 
 after(() => server.close());
 
-const post = (path, body) =>
-  fetch(base + path, {
+const post = (body) =>
+  fetch(`${base}/products`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
+    body: typeof body === 'string' ? body : JSON.stringify(body),
   });
 
-test('POST /orders creates an order', async () => {
-  const res = await post('/orders', { customerId: 'c1', item: 'mug' });
+test('POST /products creates a product', async () => {
+  const res = await post({ name: 'Widget' });
   assert.equal(res.status, 201);
-  const body = await res.json();
-  assert.ok(body.id);
-  assert.equal(body.status, 'placed');
+  const product = await res.json();
+  assert.equal(product.name, 'Widget');
+  assert.ok(product.id !== undefined);
 });
 
-test('GET /orders/<id> returns the order', async () => {
-  const { id } = await (await post('/orders', { customerId: 'c2', item: 'hat' })).json();
-  const res = await fetch(`${base}/orders/${id}`);
+test('GET /products/<id> returns the created product', async () => {
+  const created = await (await post({ name: 'Gadget' })).json();
+  const res = await fetch(`${base}/products/${created.id}`);
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { id, customerId: 'c2', item: 'hat', status: 'placed' });
+  assert.deepEqual(await res.json(), { id: created.id, name: 'Gadget' });
 });
 
-test('unknown id is 404', async () => {
-  assert.equal((await fetch(`${base}/orders/nope`)).status, 404);
-  assert.equal((await post('/orders/nope/ship')).status, 404);
-});
-
-test('order without an item is 400', async () => {
-  assert.equal((await post('/orders', { customerId: 'c3' })).status, 400);
-  assert.equal((await post('/orders', { customerId: 'c3', item: '' })).status, 400);
-  assert.equal((await post('/orders', '{bad json')).status, 400);
-});
-
-test('POST /orders/<id>/ship ships the order', async () => {
-  const { id } = await (await post('/orders', { customerId: 'c4', item: 'sock' })).json();
-  const res = await post(`/orders/${id}/ship`);
-  assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { id, customerId: 'c4', item: 'sock', status: 'shipped' });
-  const after = await (await fetch(`${base}/orders/${id}`)).json();
-  assert.equal(after.status, 'shipped');
-});
-
-test('ids are unique', async () => {
-  const a = await (await post('/orders', { customerId: 'c5', item: 'a' })).json();
-  const b = await (await post('/orders', { customerId: 'c5', item: 'b' })).json();
+test('created products get distinct ids', async () => {
+  const a = await (await post({ name: 'A' })).json();
+  const b = await (await post({ name: 'B' })).json();
   assert.notEqual(a.id, b.id);
 });
 
-const cancel = (id, customerId) =>
-  fetch(`${base}/orders/${id}/cancel`, {
-    method: 'POST',
-    headers: customerId === undefined ? {} : { 'x-customer-id': customerId },
-  });
-
-test('POST /orders/<id>/cancel cancels the order for its customer', async () => {
-  const { id } = await (await post('/orders', { customerId: 'c6', item: 'pen' })).json();
-  const res = await cancel(id, 'c6');
-  assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { id, customerId: 'c6', item: 'pen', status: 'cancelled' });
-  assert.equal((await (await fetch(`${base}/orders/${id}`)).json()).status, 'cancelled');
+test('unknown id is 404', async () => {
+  const res = await fetch(`${base}/products/does-not-exist`);
+  assert.equal(res.status, 404);
 });
 
-test('cancel by another customer or without x-customer-id is 403', async () => {
-  const { id } = await (await post('/orders', { customerId: 'c7', item: 'cup' })).json();
-  assert.equal((await cancel(id, 'someone-else')).status, 403);
-  assert.equal((await cancel(id)).status, 403);
-  assert.equal((await (await fetch(`${base}/orders/${id}`)).json()).status, 'placed');
+test('product without a name is 400', async () => {
+  assert.equal((await post({})).status, 400);
+  assert.equal((await post({ name: '' })).status, 400);
+  assert.equal((await post({ name: 42 })).status, 400);
 });
 
-test('cancelling a shipped order is 409', async () => {
-  const { id } = await (await post('/orders', { customerId: 'c8', item: 'box' })).json();
-  await post(`/orders/${id}/ship`);
-  assert.equal((await cancel(id, 'c8')).status, 409);
-  assert.equal((await (await fetch(`${base}/orders/${id}`)).json()).status, 'shipped');
+test('invalid JSON is 400', async () => {
+  assert.equal((await post('{not json')).status, 400);
+  assert.equal((await post('null')).status, 400);
 });
 
-test('cancelling an unknown order is 404', async () => {
-  assert.equal((await cancel('nope', 'c1')).status, 404);
+const del = (id) => fetch(`${base}/products/${id}`, { method: 'DELETE' });
+
+test('DELETE /products/<id> hides the product', async () => {
+  const created = await (await post({ name: 'Doomed' })).json();
+  assert.equal((await del(created.id)).status, 204);
+  assert.equal((await fetch(`${base}/products/${created.id}`)).status, 404);
+});
+
+test('removing an unknown or already-removed product is 404', async () => {
+  assert.equal((await del('does-not-exist')).status, 404);
+  const created = await (await post({ name: 'Twice' })).json();
+  assert.equal((await del(created.id)).status, 204);
+  assert.equal((await del(created.id)).status, 404);
+});
+
+test('a removed product id is never reused', async () => {
+  const removed = await (await post({ name: 'Old' })).json();
+  await del(removed.id);
+  const fresh = await (await post({ name: 'New' })).json();
+  assert.notEqual(fresh.id, removed.id);
 });

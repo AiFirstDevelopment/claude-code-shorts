@@ -28,7 +28,7 @@ flowchart LR
 | [`01-walk-away`](01-walk-away) | Give Claude Code a task and walk away | The two files and the one command; Claude Code builds a URL shortener by itself |
 | [`02-tests`](02-tests) | How to write the tests Claude Code works toward | Turning each rule in the task file into a test that checks it |
 | [`03-task-file`](03-task-file) | Write a task file Claude Code can't misread | The same job from a two-line task file and from seven checkable rules: 2 of 5 tests pass, then 5 of 5 |
-| [`04-claude-md`](04-claude-md) | CLAUDE.md: what Claude Code can't guess | The same request without and with three rules in CLAUDE.md: anyone can cancel anyone's order, then only the customer who placed it |
+| [`04-claude-md`](04-claude-md) | CLAUDE.md: what Claude Code can't guess | What it already does with no CLAUDE.md, the one fact it couldn't see (old orders point to products), and why not to count on it |
 | [`05-spec-first`](05-spec-first) | Claude Code skills, explained | The spec-first plugin (a skill plus a hook) and a real run: rules and tests, an OK, a locked build |
 
 ## The plugin
