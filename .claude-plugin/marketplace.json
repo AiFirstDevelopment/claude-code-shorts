@@ -55,6 +55,21 @@
       ]
     },
     {
+      "name": "free-disk-space",
+      "source": "./plugins/free-disk-space",
+      "description": "Free up disk space on a Mac: moves what rebuilds itself to the Trash, and asks about big files that might matter.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joel Stevick"
+      },
+      "category": "productivity",
+      "tags": [
+        "disk space",
+        "mac",
+        "cleanup"
+      ]
+    },
+    {
       "name": "spec-first",
       "source": "./plugins/spec-first",
       "description": "Turn a request into a task file of checkable rules and the tests that check them, get your OK, then build until the tests pass, with the tests locked so they can't be edited to pass.",

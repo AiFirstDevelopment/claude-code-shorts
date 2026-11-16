@@ -1,0 +1,8 @@
+{
+  "name": "free-disk-space",
+  "description": "Free up disk space on a Mac: finds what rebuilds itself (caches, build output, old node_modules) and moves it to the Trash, and asks you one by one about big files that look safe but might not be.",
+  "version": "1.0.0",
+  "author": { "name": "Joel Stevick" },
+  "homepage": "https://github.com/AiFirstDevelopment/claude-code-shorts",
+  "keywords": ["disk space", "mac", "cleanup", "storage"]
+}

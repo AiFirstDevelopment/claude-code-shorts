@@ -32,6 +32,7 @@ flowchart LR
 | [`05-spec-first`](05-spec-first) | Claude Code skills, explained | The spec-first plugin (a skill plus a hook) and a real run: rules and tests, an OK, a locked build |
 | [`06-commit-and-pr`](06-commit-and-pr) | Claude Code writes my commit messages | The commit-and-pr plugin on a real change: the commit message and pull request description it wrote |
 | [`07-write-tests`](07-write-tests) | Claude Code writes my tests | The write-tests plugin on a real change: seven tests, each proven to fail when the code is broken |
+| [`08-free-disk-space`](08-free-disk-space) | I ran out of disk space | The free-disk-space plugin on a real Mac: 12 GB free to 146 GB, and a nightly cleanup job |
 
 ## The plugin
 
