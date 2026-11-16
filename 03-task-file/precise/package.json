@@ -1,0 +1,1 @@
+{ "name": "shortener-precise", "type": "module", "scripts": { "test": "node --test" } }
