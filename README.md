@@ -28,6 +28,7 @@ flowchart LR
 | [`01-walk-away`](01-walk-away) | Give Claude Code a task and walk away | The two files and the one command; Claude Code builds a URL shortener by itself |
 | [`02-tests`](02-tests) | How to write the tests Claude Code works toward | Turning each rule in the task file into a test that checks it |
 | [`03-task-file`](03-task-file) | Write a task file Claude Code can't misread | The same job from a two-line task file and from seven checkable rules: 2 of 5 tests pass, then 5 of 5 |
+| [`04-claude-md`](04-claude-md) | CLAUDE.md: what Claude Code can't guess | The same request without and with three rules in CLAUDE.md: anyone can delete, then admins only and nothing lost |
 
 ## Running an example
 
