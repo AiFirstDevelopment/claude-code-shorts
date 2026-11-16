@@ -25,6 +25,21 @@
       ]
     },
     {
+      "name": "commit-and-pr",
+      "source": "./plugins/commit-and-pr",
+      "description": "Write the commit message and the pull request description from your actual changes, in your repository's own style.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joel Stevick"
+      },
+      "category": "git",
+      "tags": [
+        "git",
+        "commit message",
+        "pull request"
+      ]
+    },
+    {
       "name": "spec-first",
       "source": "./plugins/spec-first",
       "description": "Turn a request into a task file of checkable rules and the tests that check them, get your OK, then build until the tests pass, with the tests locked so they can't be edited to pass.",

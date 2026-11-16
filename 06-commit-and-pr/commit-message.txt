@@ -1,0 +1,7 @@
+Search: don't, don’t and dont are one word
+
+Keyword search split on every apostrophe, so "don't" became "don" and "t"
+and never matched "dont" or the curly "don’t" a PDF often carries. An
+apostrophe (straight or curly) between two letters or digits is now dropped
+before tokenizing; one at the edge of a word still separates, as before.
+

@@ -1,0 +1,54 @@
+diff --git a/demo/src/retrieval.ts b/demo/src/retrieval.ts
+index ec3327b..e2c5201 100644
+--- a/demo/src/retrieval.ts
++++ b/demo/src/retrieval.ts
+@@ -33,8 +33,9 @@ const STOP = new Set(
+ 
+ /** A text as the tokens BM25 compares: lower-cased runs of letters and digits, stop words out, a plain plural's "s" off. */
+ export function words(text: string): string[] {
+-  // Anything but a letter or digit separates tokens, so punctuation and case never stop a match.
+-  return (text.toLowerCase().match(/[a-z0-9]+/g) ?? [])
++  // An apostrophe inside a word (' or ’) is dropped first, so "don't", "don’t" and "dont" are one token.
++  // Anything else but a letter or digit separates tokens, so punctuation and case never stop a match.
++  return (text.toLowerCase().replace(/(?<=[a-z0-9])['’](?=[a-z0-9])/g, '').match(/[a-z0-9]+/g) ?? [])
+     .filter((word) => !STOP.has(word))
+     // "invoices" must find "invoice"; "bus" must not become "bu".
+     .map((word) => (word.length > 3 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word))
+diff --git a/demo/tests/demo.test.ts b/demo/tests/demo.test.ts
+index a799168..f413ab7 100644
+--- a/demo/tests/demo.test.ts
++++ b/demo/tests/demo.test.ts
+@@ -10,6 +10,7 @@ import { idsIn, units, unmarked } from '../src/check'
+ import { createApp, NOT_FOUND, type Env } from '../src/app'
+ import { ANSWER_MODEL, claudeFor, claudeStreamFor, RERANK_MODEL, type Claude, type ClaudeStream } from '../src/models'
+ import { WIDEN_CHARS } from '../src/widen'
++import { bm25, words, type Chunk } from '../src/retrieval'
+ import { claude as scriptedClaude, embed, ScriptedVectors, scriptedModels, stream as scriptedStream } from '../../tests/support/scripted'
+ 
+ let vectors: ScriptedVectors
+@@ -738,3 +739,25 @@ describe('units of a streamed reply', () => {
+     }
+   })
+ })
++
++describe('apostrophes inside words', () => {
++  const chunk = (id: string, text: string): Chunk => ({ id, file: 'f', page: 1, text })
++
++  it('drops a straight or curly apostrophe inside a word, so a contraction is one token', () => {
++    expect(words("don't")).toEqual(['dont'])
++    expect(words('don’t')).toEqual(['dont'])
++    expect(words('dont')).toEqual(['dont'])
++    expect(words("Can't renew")).toEqual(['cant', 'renew'])
++  })
++
++  it('still separates on an apostrophe that is not inside a word', () => {
++    expect(words("'quoted' ends'")).toEqual(['quoted', 'end'])
++  })
++
++  it("finds don't and don’t from a search for dont, and the other way round", () => {
++    const chunks = [chunk('a', "You don't pay twice."), chunk('b', 'You don’t pay twice.'), chunk('c', 'Pay the fee.')]
++    expect(bm25(chunks, 'dont', 10).map((c) => c.id).sort()).toEqual(['a', 'b'])
++    expect(bm25([chunk('d', 'You dont pay twice.')], "don't", 10).map((c) => c.id)).toEqual(['d'])
++    expect(bm25([chunk('e', 'You dont pay twice.')], 'don’t', 10).map((c) => c.id)).toEqual(['e'])
++  })
++})

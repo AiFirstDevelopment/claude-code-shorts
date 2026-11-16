@@ -1,0 +1,8 @@
+Merge pull request #14 from AiFirstDevelopment/sync-streaming
+The streamed answer, checked a sentence at a time, synced from the site
+Merge pull request #13 from AiFirstDevelopment/ported-from-comments
+The ported-from comments name Howard's Lantern's worker, not the old repo name
+Merge pull request #12 from AiFirstDevelopment/pipeline-comments
+Demo pipeline and evals: a comment every few statements; drop unused setupCalls
+Merge pull request #11 from AiFirstDevelopment/demo-history
+Earlier answers come back after a reload, collapsed to their questions
