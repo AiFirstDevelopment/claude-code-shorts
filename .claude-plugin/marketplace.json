@@ -1,0 +1,22 @@
+{
+  "name": "claude-code-shorts",
+  "owner": {
+    "name": "Joel Stevick",
+    "url": "https://github.com/AiFirstDevelopment"
+  },
+  "metadata": {
+    "description": "Plugins from Joel Stevick's Claude Code Shorts.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "spec-first",
+      "source": "./plugins/spec-first",
+      "description": "Turn a request into a task file of checkable rules and the tests that check them, get your OK, then build until the tests pass, with the tests locked so they can't be edited to pass.",
+      "version": "1.0.0",
+      "author": { "name": "Joel Stevick" },
+      "category": "workflow",
+      "tags": ["tests", "spec", "tdd", "task-file"]
+    }
+  ]
+}

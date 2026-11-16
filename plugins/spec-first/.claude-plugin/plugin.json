@@ -1,0 +1,8 @@
+{
+  "name": "spec-first",
+  "description": "Turn a request into a task file of checkable rules and the tests that check them, get your OK, then build until the tests pass, with the tests locked so they can't be edited to pass.",
+  "version": "1.0.0",
+  "author": { "name": "Joel Stevick" },
+  "homepage": "https://github.com/AiFirstDevelopment/claude-code-shorts",
+  "keywords": ["tests", "spec", "tdd", "task-file"]
+}

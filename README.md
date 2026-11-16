@@ -29,6 +29,16 @@ flowchart LR
 | [`02-tests`](02-tests) | How to write the tests Claude Code works toward | Turning each rule in the task file into a test that checks it |
 | [`03-task-file`](03-task-file) | Write a task file Claude Code can't misread | The same job from a two-line task file and from seven checkable rules: 2 of 5 tests pass, then 5 of 5 |
 | [`04-claude-md`](04-claude-md) | CLAUDE.md: what Claude Code can't guess | The same request without and with three rules in CLAUDE.md: anyone can delete, then admins only and nothing lost |
+| [`05-spec-first`](05-spec-first) | Claude Code skills, explained | The spec-first plugin (a skill plus a hook) and a real run: rules and tests, an OK, a locked build |
+
+## The plugin
+
+[`plugins/spec-first`](plugins/spec-first) is a Claude Code plugin you can install: it turns a request into checkable rules and tests, waits for your OK, then builds with the tests locked.
+
+```
+/plugin marketplace add AiFirstDevelopment/claude-code-shorts
+/plugin install spec-first@claude-code-shorts
+```
 
 ## Running an example
 
