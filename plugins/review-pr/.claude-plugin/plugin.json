@@ -1,0 +1,8 @@
+{
+  "name": "review-pr",
+  "description": "Paste a link to a GitHub pull request or GitLab merge request and get a review: bugs, security problems, missing tests and mismatches with the description, worst first, with file and line. Posts nothing unless you ask.",
+  "version": "1.0.0",
+  "author": { "name": "Joel Stevick" },
+  "homepage": "https://github.com/AiFirstDevelopment/claude-code-shorts",
+  "keywords": ["code review", "pull request", "merge request", "github", "gitlab"]
+}

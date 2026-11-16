@@ -10,13 +10,35 @@
   },
   "plugins": [
     {
+      "name": "review-pr",
+      "source": "./plugins/review-pr",
+      "description": "Paste a link to a GitHub pull request or GitLab merge request and get a review: bugs, security problems, missing tests, worst first, with file and line.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joel Stevick"
+      },
+      "category": "code-review",
+      "tags": [
+        "code review",
+        "pull request",
+        "merge request"
+      ]
+    },
+    {
       "name": "spec-first",
       "source": "./plugins/spec-first",
       "description": "Turn a request into a task file of checkable rules and the tests that check them, get your OK, then build until the tests pass, with the tests locked so they can't be edited to pass.",
       "version": "1.0.0",
-      "author": { "name": "Joel Stevick" },
+      "author": {
+        "name": "Joel Stevick"
+      },
       "category": "workflow",
-      "tags": ["tests", "spec", "tdd", "task-file"]
+      "tags": [
+        "tests",
+        "spec",
+        "tdd",
+        "task-file"
+      ]
     }
   ]
 }
