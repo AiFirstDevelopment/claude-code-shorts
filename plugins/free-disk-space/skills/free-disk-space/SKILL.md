@@ -23,6 +23,10 @@ allowed-tools: Bash(df:*), Bash(du:*), Bash(find:*), Bash(stat:*), Bash(ls:*), B
 **Safe: rebuilds itself.** Caches, Xcode DerivedData, simulator caches, package manager caches, and `node_modules`
 in projects untouched for 30 days (`npm install` brings them back). Deleting these loses nothing but time.
 
+Inside `~/Library/Caches`, leave out tool installs that live there but don't rebuild on their own, and put them on
+the Ask list instead: `ms-playwright` and `Cypress` (test browsers; tests fail until `npx playwright install` or
+`npx cypress install` runs again), and anything an app needs to start.
+
 **Ask: looks safe, might not be.** Large files in Downloads (installers, zips, videos), large videos anywhere,
 virtual machines, Docker images, archives. Each could be the only copy of something.
 
