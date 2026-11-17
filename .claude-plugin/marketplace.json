@@ -114,6 +114,22 @@
         "readme",
         "docs"
       ]
+    },
+    {
+      "name": "test-in-browser",
+      "source": "./plugins/test-in-browser",
+      "description": "Opens your web app in a real browser through the Playwright MCP server, tests its flows, reports what broke, and writes Playwright tests that run in CI.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joel Stevick"
+      },
+      "category": "testing",
+      "tags": [
+        "playwright",
+        "mcp",
+        "browser testing",
+        "e2e"
+      ]
     }
   ]
 }
