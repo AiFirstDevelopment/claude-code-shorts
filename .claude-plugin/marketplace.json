@@ -99,6 +99,21 @@
         "tdd",
         "task-file"
       ]
+    },
+    {
+      "name": "update-docs",
+      "source": "./plugins/update-docs",
+      "description": "Checks every claim in your README and doc comments against the code, fixes the ones that are no longer true, and cites the line of code that proves each fix.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joel Stevick"
+      },
+      "category": "documentation",
+      "tags": [
+        "documentation",
+        "readme",
+        "docs"
+      ]
     }
   ]
 }

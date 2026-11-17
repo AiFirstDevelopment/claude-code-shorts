@@ -34,6 +34,7 @@ flowchart LR
 | [`07-write-tests`](07-write-tests) | Claude Code writes my tests | The write-tests plugin on a real change: seven tests, each proven to fail when the code is broken |
 | [`08-free-disk-space`](08-free-disk-space) | I ran out of disk space | The free-disk-space plugin on a real Mac: 12 GB free to 146 GB, and a nightly cleanup job |
 | [`09-fix-bug`](09-fix-bug) | A skill that finds the cause of a bug | The fix-bug plugin on a real bug: a failing test first, a one-line fix, 49 tests passing |
+| [`10-update-docs`](10-update-docs) | A skill that keeps your README true | The update-docs plugin on a real project: 75 claims checked against the code, 73 true, 2 fixed |
 
 ## The plugin
 

@@ -1,0 +1,8 @@
+{
+  "name": "update-docs",
+  "description": "Checks every claim in your README and doc comments against the code, fixes the ones that are no longer true, and shows you the line of code that proves each fix.",
+  "version": "1.0.0",
+  "author": { "name": "Joel Stevick" },
+  "homepage": "https://github.com/AiFirstDevelopment/claude-code-shorts",
+  "keywords": ["documentation", "readme", "docs", "doc comments"]
+}

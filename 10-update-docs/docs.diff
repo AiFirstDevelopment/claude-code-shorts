@@ -1,0 +1,26 @@
+diff --git a/README.md b/README.md
+index 5808777..bbb9fee 100644
+--- a/README.md
++++ b/README.md
+@@ -109,7 +109,7 @@ JSON body for every other caller, such as the eval harness ([line 479](demo/src/
+ ### 6. The streamed answer: back in `demo.html`
+ 
+ - The answer arrives as server-sent events: `stage` (the step the ask is at), `unit` (one checked
+-  sentence or list item), `stopped` (a later sentence failed its check), then exactly one of
++  sentence or list item), `stopped` (a later sentence failed its check, or the model failed partway), then exactly one of
+   `done`, `fallback` or `error`.
+ - The ask is a `POST`, so the browser's `EventSource` cannot read it; [`events`](demo.html#L325)
+   reads the body with a reader and yields each whole event.
+diff --git a/evals/README.md b/evals/README.md
+index 8b0e17b..603f757 100644
+--- a/evals/README.md
++++ b/evals/README.md
+@@ -25,7 +25,7 @@ asks each case through `POST /api/ask`, and deletes the demos' vectors at the en
+ | column | meaning |
+ |---|---|
+ | status | `pass`, `fail`, `review` (a person must read it), `error`, `not run` |
+-| behaviour | answered, or the fallback (with the check's reason when it refused one) |
++| behaviour | answered, or the fallback (with the check's reason when it refused one); an answer cut short adds `stopped:` and why |
+ | facts | required facts whose match terms appear in the answer |
+ | sources in pool | located passages among the ~48 the reranker read |
+ | sources in context | located passages among the 12 the answer was written from |
