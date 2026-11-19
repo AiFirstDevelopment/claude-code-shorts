@@ -1,0 +1,1 @@
+{ "name": "check-links", "type": "module", "scripts": { "test": "node --test" } }
