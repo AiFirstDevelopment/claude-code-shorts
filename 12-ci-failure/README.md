@@ -1,37 +1,57 @@
 # A real run of the ci-failure plugin
 
 The plugin is in [`plugins/ci-failure`](../plugins/ci-failure), with how to install it. This folder is one real run
-on a real CI failure in an open-source project: a pull request to [Vite](https://github.com/vitejs/vite) whose CI run
-([44567079575](https://github.com/vitejs/vite/actions/runs/44567079575)) failed on one job of nine,
-`Build&Test: node-26, windows-latest`. The failed job's log is 625 lines, 92 KB.
+on a real CI failure: [Vite](https://github.com/vitejs/vite) pull request
+[#24126](https://github.com/vitejs/vite/pull/24126), "fix(optimizer): detect in-place patch file edits in lockfile
+hash", merged on 2026-11-18. Its first commit's CI run,
+[44071914318](https://github.com/vitejs/vite/actions/runs/44071914318), failed on all six build-and-test jobs. The
+failed jobs' logs are 3,477 lines, 512 KB.
 
-The same question was asked twice, each in a fresh Claude Code session in a checkout of the pull request
-(2026-11-19):
+## The question, asked twice
+
+Each in a fresh Claude Code session, in a checkout of the failing commit (`df48940`), on 2026-11-19. Neither could see
+the fix.
 
 | | Through the subagent | The main session reads the logs itself |
 |---|---|---|
 | The prompt | `/why-ci-failed <run URL>` | "CI failed on this pull request: <run URL>. Find out why." |
 | The answer | [`with-subagent.md`](with-subagent.md) | [`without-subagent.md`](without-subagent.md) |
-| What the main conversation grew by | **2,723 tokens** | **18,275 tokens** |
-| Cost | $0.78 | $1.13 |
+| What the main conversation grew by | **2,803 tokens** | **26,056 tokens** |
+| Cost | $0.78 | $0.92 |
 
-Both found the same cause: the pull request's new test builds its fixture path with `path.join` (backslashes on
-Windows), but Vite's module graph keys files by forward-slash paths, so on Windows the test never invalidates the
-module and the cached result comes back. The fix is `normalizePath(...)` around the path, in the test. Neither run
-had a Windows machine to prove it; both say so.
+## Was it right? The author's actual fix
 
-The difference is where the reading happened. Without the subagent, every log excerpt, file and search result stayed
-in the conversation for the rest of the session. With it, the subagent did that reading in its own context window and
-only its 15-line answer came back.
+The failing assertion was `expected 'e3b0c442' not to be 'e3b0c442'`. `e3b0c442` is the start of the SHA-256 of
+an empty string. The subagent said: the new test's fixture has no lockfile, so the hash is of nothing and the new code
+never runs; add a lockfile whose format opts into hashing `patches/`, and set the patch file's mtime explicitly with
+`fs.utimesSync` so the test doesn't depend on timestamp resolution.
+
+The author's next commit ([`a36ad2f`](https://github.com/vitejs/vite/commit/a36ad2fe5), after which CI passed and
+the pull request was merged) did both:
+
+```diff
++  // the patches dir is only hashed when a lockfile whose format opts into
++  // it (here: yarn 1's .yarn-integrity) exists
++  fs.mkdirSync(path.join(fixture, 'node_modules'), { recursive: true })
++  fs.writeFileSync(path.join(fixture, 'node_modules/.yarn-integrity'), '{}')
+   const hashBefore = getLockfileHash(fixture)
+   ...
++  const { atime, mtime } = fs.statSync(patchPath)
++  fs.utimesSync(patchPath, atime, new Date(mtime.getTime() + 1000))
+```
+
+Both sessions reached the same cause. The difference is where the reading happened: without the subagent, every log
+excerpt, file and search stayed in the conversation for the rest of the session; with it, the subagent read in its
+own context window and only its answer came back.
 
 ```mermaid
 flowchart LR
     Q["/why-ci-failed"] --> S["ci-failure subagent<br/>its own context"]
-    S --> L["gh run view --log-failed<br/>625 lines"]
+    S --> L["failed logs<br/>3,477 lines"]
     S --> C["the test and the code"]
-    L --> A["15-line answer:<br/>error, cause, file:line, fix"]
+    L --> A["the answer:<br/>error, cause, file:line, fix"]
     C --> A
-    A --> M["your conversation:<br/>+2,723 tokens"]
+    A --> M["your conversation:<br/>+2,803 tokens"]
 ```
 
 Token counts are the main conversation's context at its first and last turn, from each session's

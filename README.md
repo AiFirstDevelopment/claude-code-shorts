@@ -36,7 +36,7 @@ flowchart LR
 | [`09-fix-bug`](09-fix-bug) | A skill that finds the cause of a bug | The fix-bug plugin on a real bug: a failing test first, a one-line fix, 49 tests passing |
 | [`10-update-docs`](10-update-docs) | A skill that keeps your README true | The update-docs plugin on a real project: 75 claims checked against the code, 73 true, 2 fixed |
 | [`11-test-in-browser`](11-test-in-browser) | Claude Code tests my website in a real browser | The test-in-browser plugin (Playwright MCP) on joelstevick.com: one real bug found, 7 tests written for CI |
-| [`12-ci-failure`](12-ci-failure) | Claude Code subagents vs skills | The ci-failure plugin on a real Vite CI failure: the same answer, with the conversation growing by 2,723 tokens instead of 18,275 |
+| [`12-ci-failure`](12-ci-failure) | Claude Code subagents vs skills | The ci-failure plugin on a real Vite CI failure: the cause the author fixed, with the conversation growing by 2,803 tokens instead of 26,056 |
 
 ## The plugin
 

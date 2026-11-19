@@ -1,15 +1,14 @@
 # The answer, with the main session reading the logs itself
 
-"CI failed on this pull request: https://github.com/vitejs/vite/actions/runs/44567079575. Find out why: read the failed logs and the code, and tell me the cause."
+"CI failed on this pull request: https://github.com/vitejs/vite/actions/runs/44071914318. Find out why: read the failed logs and the code, and tell me the cause."
 
-The failure is a Windows-only bug in the PR's new test, not in the fix itself: only `Build&Test: node-26, windows-latest` → `Test unit` failed, at `packages/vite/src/node/server/__tests__/hmr.spec.ts:116` (`expected { …(3) } to be null`).
+The new test `hash changes when a patch file is edited in place` fails on all six Build&Test jobs because its `yarn-patches` fixture was committed without a lockfile; the only file in it is `patches/foo+1.0.0.patch`.
 
-**Cause:** the test builds its path with `path.join(import.meta.dirname, 'hmr-inflight-fixture.js')` (`hmr.spec.ts:58`), which gives backslashes on Windows. The module graph keys files by forward-slash paths, and `handleHMRUpdate` does not normalize its `file` argument — the real watcher does that first (`server/index.ts:1054`). So on Windows:
+- **Failure:** `AssertionError: expected 'e3b0c442' not to be 'e3b0c442'` at `packages/vite/src/node/__tests__/optimizer/lockfileHash.spec.ts:46`. `e3b0c442` is the hash of an empty string.
+- **Why:** with no lockfile found, `getLockfileHash` (`packages/vite/src/node/optimizer/index.ts:1350`) hashes `''` and never reaches the new patch-mtime code, so the hash is identical before and after the edit.
+- **Likely origin (inferred, not confirmed):** the author had a `node_modules/.yarn-integrity` or `node_modules/.package-lock.json` locally that git ignored. The sibling `yarn-state` fixture carries a `.gitignore` with `!/node_modules/` for exactly this; `yarn-patches` has none.
+- **Fix:** commit a lockfile whose format checks `patches` (e.g. `node_modules/.yarn-integrity`) plus that `.gitignore` to the fixture.
 
-- `moduleGraph.onFileChange(fixture)` (`hmr.spec.ts:110`) finds no module and invalidates nothing.
-- `handleHMRUpdate('update', fixture, server)` finds no modules either, so `updateModules` never invalidates the module.
-- `id === fixture` in the slow-transform plugin (`hmr.spec.ts:73`) never matches.
+Even with the fixture fixed, the test could still be flaky: it rewrites the patch immediately after the fixture is copied, so on a filesystem with coarse timestamps the mtime may not change. Setting it explicitly with `fs.utimesSync` would avoid that.
 
-The log agrees: the "received" value is the warm-up transform result, with `import "/hmr-inflight-fixture.js"` and no `?t=`, meaning the module was never invalidated.
-
-**Fix:** wrap the path in `normalizePath(...)` in the test. I haven't run this on Windows, so that is from reading the code and the log.
+On node-20 the log also shows `TypeError: Map.groupBy is not a function`. That is vitest 5.1.0's reporter crashing while printing the failure, not a separate cause.
