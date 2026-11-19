@@ -27,7 +27,9 @@ never runs; add a lockfile whose format opts into hashing `patches/`, and set th
 `fs.utimesSync` so the test doesn't depend on timestamp resolution.
 
 The author's next commit ([`a36ad2f`](https://github.com/vitejs/vite/commit/a36ad2fe5), after which CI passed and
-the pull request was merged) did both:
+the pull request was merged) made the same two changes. The lockfile differed: the subagent suggested `bun.lock` or
+`node_modules/.package-lock.json`; the author used yarn 1's `node_modules/.yarn-integrity` (and a later commit moved
+it into the fixture with a `.gitignore`). This is a replay: the author had fixed it two days before these sessions.
 
 ```diff
 +  // the patches dir is only hashed when a lockfile whose format opts into
@@ -53,6 +55,10 @@ flowchart LR
     C --> A
     A --> M["your conversation:<br/>+2,803 tokens"]
 ```
+
+Neither session read all 3,477 lines (the plain one tailed and searched them), so the 26,056 tokens are an ordinary
+investigation, not the whole log. Both sessions had a 1,000,000-token window; on a 200,000-token window the difference
+is about 12%. One run each.
 
 Token counts are the main conversation's context at its first and last turn, from each session's
 `--output-format stream-json` log.
