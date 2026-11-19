@@ -37,7 +37,7 @@ flowchart LR
 | [`10-update-docs`](10-update-docs) | A skill that keeps your README true | The update-docs plugin on a real project: 75 claims checked against the code, 73 true, 2 fixed |
 | [`11-test-in-browser`](11-test-in-browser) | Claude Code tests my website in a real browser | The test-in-browser plugin (Playwright MCP) on joelstevick.com: one real bug found, 7 tests written for CI |
 | [`12-ci-failure`](12-ci-failure) | (no Short) | The ci-failure plugin on a real Vite CI failure: the cause the author fixed, with the conversation growing by 2,803 tokens instead of 26,056 |
-| [`13-first-project`](13-first-project) | Claude Code Tutorial for Beginners: Build Your First Project Step by Step | A broken-link checker from a task file and 11 tests, one instruction, all passing; it finds a dead link in axios's README |
+| [`13-first-project`](13-first-project) | Claude Code by Example: Your First Project, Step by Step | You write the task file; Claude Code writes 23 tests from it, then the code that passes them; it finds a dead link in axios's README |
 
 ## The plugin
 
