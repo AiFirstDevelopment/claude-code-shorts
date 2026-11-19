@@ -1,0 +1,8 @@
+{
+  "name": "fresh-eyes",
+  "description": "A reviewer subagent that never saw the code being written: it gets only the task and the change, checks every rule against the code with file and line, and runs what it can to prove it.",
+  "version": "1.0.0",
+  "author": { "name": "Joel Stevick" },
+  "homepage": "https://github.com/AiFirstDevelopment/claude-code-shorts",
+  "keywords": ["subagent", "code review", "skills", "review"]
+}

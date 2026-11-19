@@ -130,6 +130,21 @@
         "browser testing",
         "e2e"
       ]
+    },
+    {
+      "name": "fresh-eyes",
+      "source": "./plugins/fresh-eyes",
+      "description": "A reviewer subagent that never saw the code being written: it checks every rule in the task against the change, with file, line and proof.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joel Stevick"
+      },
+      "category": "code-review",
+      "tags": [
+        "subagent",
+        "code review",
+        "skills"
+      ]
     }
   ]
 }
