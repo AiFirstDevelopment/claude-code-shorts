@@ -132,18 +132,18 @@
       ]
     },
     {
-      "name": "fresh-eyes",
-      "source": "./plugins/fresh-eyes",
-      "description": "A reviewer subagent that never saw the code being written: it checks every rule in the task against the change, with file, line and proof.",
+      "name": "ci-failure",
+      "source": "./plugins/ci-failure",
+      "description": "Why did CI fail? A subagent reads the failed logs and the code in its own context and hands back the cause with file and line.",
       "version": "1.0.0",
       "author": {
         "name": "Joel Stevick"
       },
-      "category": "code-review",
+      "category": "debugging",
       "tags": [
         "subagent",
-        "code review",
-        "skills"
+        "ci",
+        "github actions"
       ]
     }
   ]

@@ -1,0 +1,8 @@
+{
+  "name": "ci-failure",
+  "description": "Why did CI fail? A subagent reads the failed job's logs and the code in its own context and hands back a short answer: the failing step, the error, the cause with file and line, and whether it's your change or a flake.",
+  "version": "1.0.0",
+  "author": { "name": "Joel Stevick" },
+  "homepage": "https://github.com/AiFirstDevelopment/claude-code-shorts",
+  "keywords": ["subagent", "ci", "github actions", "debugging"]
+}
